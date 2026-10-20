@@ -6,11 +6,16 @@ require('dotenv').config();
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
 
+// Konfigurasi koneksi database MySQL (Mendukung Aiven Cloud dengan SSL & Port 16048)
 const db = mysql.createConnection({
   host: process.env.DB_HOST || 'localhost',
   user: process.env.DB_USER || 'root',
   password: process.env.DB_PASS || '',
-  database: process.env.DB_NAME || 'db_inventory'
+  database: process.env.DB_NAME || 'db_inventory',
+  port: Number(process.env.DB_PORT) || 3306,
+  ssl: {
+    rejectUnauthorized: false
+  }
 });
 
 db.connect((err) => {
@@ -208,22 +213,17 @@ app.post('/delete/:id', (req, res) => {
 
 app.use((req, res) => showError(res, 'Halaman yang kamu cari tidak ditemukan.', 404));
 
-app.listen(PORT, () => {
-  console.log('────────────────────────────────────');
-  console.log('  STOCKIFY PRO · INVENTORY STUDIO');
-  console.log(`  http://localhost:${PORT}`);
-  console.log('────────────────────────────────────');
-});
-
-process.on('SIGINT', () => db.end(() => process.exit(0)));
-const PORT = Number(process.env.PORT) || 3000;
-
-// Agar tetap bisa jalan lokal di komputer
+// Jalankan server lokal jika bukan di mode production (Vercel)
 if (process.env.NODE_ENV !== 'production') {
   app.listen(PORT, () => {
-    console.log(`Server running at http://localhost:${PORT}`);
+    console.log('────────────────────────────────────');
+    console.log('   STOCKIFY PRO · INVENTORY STUDIO');
+    console.log(`   http://localhost:${PORT}`);
+    console.log('────────────────────────────────────');
   });
 }
 
-// Wajib ada untuk Vercel
+process.on('SIGINT', () => db.end(() => process.exit(0)));
+
+// Wajib diekspor agar bisa dibaca oleh Vercel
 module.exports = app;
