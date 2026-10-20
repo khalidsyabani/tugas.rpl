@@ -216,3 +216,14 @@ app.listen(PORT, () => {
 });
 
 process.on('SIGINT', () => db.end(() => process.exit(0)));
+const PORT = Number(process.env.PORT) || 3000;
+
+// Agar tetap bisa jalan lokal di komputer
+if (process.env.NODE_ENV !== 'production') {
+  app.listen(PORT, () => {
+    console.log(`Server running at http://localhost:${PORT}`);
+  });
+}
+
+// Wajib ada untuk Vercel
+module.exports = app;
