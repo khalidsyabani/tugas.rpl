@@ -6,13 +6,13 @@ require('dotenv').config();
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
 
-// Konfigurasi koneksi database MySQL (Mendukung Aiven Cloud dengan SSL & Port 16048)
+// Konfigurasi koneksi database MySQL (Mendukung Aiven Cloud dengan port 16048 & SSL)
 const db = mysql.createConnection({
   host: process.env.DB_HOST || 'localhost',
   user: process.env.DB_USER || 'root',
   password: process.env.DB_PASS || '',
-  database: process.env.DB_NAME || 'db_inventory',
-  port: Number(process.env.DB_PORT) || 3306,
+  database: process.env.DB_NAME || 'defaultdb',
+  port: Number(process.env.DB_PORT) || 16048,
   ssl: {
     rejectUnauthorized: false
   }
@@ -21,9 +21,9 @@ const db = mysql.createConnection({
 db.connect((err) => {
   if (err) {
     console.error('MySQL connection failed:', err.message);
-    process.exit(1);
+  } else {
+    console.log('✓ Stockify Pro connected to MySQL');
   }
-  console.log('✓ Stockify Pro connected to MySQL');
 });
 
 app.set('view engine', 'ejs');
@@ -84,8 +84,8 @@ app.get('/', (req, res) => {
 
   db.query(sql, params, (err, items) => {
     if (err) {
-      console.error(err);
-      return showError(res, 'Data inventaris gagal dimuat.', 500);
+      console.error('Query Error (Items):', err.message);
+      return showError(res, 'Data inventaris gagal dimuat. Pastikan tabel items sudah dibuat di database.', 500);
     }
 
     const statsSql = `
@@ -97,13 +97,13 @@ app.get('/', (req, res) => {
 
     db.query(statsSql, (statsErr, statRows) => {
       if (statsErr) {
-        console.error(statsErr);
+        console.error('Query Error (Stats):', statsErr.message);
         return showError(res, 'Statistik inventaris gagal dimuat.', 500);
       }
 
       db.query('SELECT DISTINCT category FROM items ORDER BY category ASC', (catErr, catRows) => {
         if (catErr) {
-          console.error(catErr);
+          console.error('Query Error (Categories):', catErr.message);
           return showError(res, 'Kategori gagal dimuat.', 500);
         }
         res.render('index', {
@@ -223,7 +223,5 @@ if (process.env.NODE_ENV !== 'production') {
   });
 }
 
-process.on('SIGINT', () => db.end(() => process.exit(0)));
-
-// Wajib diekspor agar bisa dibaca oleh Vercel
+// Wajib diekspor agar Vercel dapat menjalankan aplikasi Express sebagai serverless function
 module.exports = app;
